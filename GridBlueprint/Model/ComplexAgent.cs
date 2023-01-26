@@ -152,7 +152,6 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
             if (Position.Equals(_goal))
             {
                 Console.WriteLine($"ComplexAgent {ID} reached goal {_goal}");
-                _goal = FindRoutableGoal();
                 _tripInProgress = false;
             }
         }
