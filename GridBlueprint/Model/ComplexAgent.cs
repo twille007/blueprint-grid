@@ -23,7 +23,7 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
     {
         _layer = layer;
         Position = new Position(X, Y);
-        _state = AgentState.MoveWithBearing;
+        _state = AgentState.MoveTowardsGoal;  // Initial state of the agent. Is overwritten eventually in Tick()
         _directions = CreateMovementDirectionsList();
         _layer.ComplexAgentEnvironment.Insert(this);
     }
@@ -39,6 +39,7 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
     /// </summary>
     public void Tick()
     {
+        // Chooses random state if trip is no longer in progress. Comment this out if the agent should keep its initial state.
         _state = RandomlySelectNewState();
         
         if (_state == AgentState.MoveRandomly)
@@ -195,6 +196,7 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
 
     /// <summary>
     ///     Selects a new state from the AgentState enumeration to guide for subsequent behavior.
+    ///     Will return the current state if a route is still in progress.
     /// </summary>
     /// <returns>The selected state</returns>
     private AgentState RandomlySelectNewState()
