@@ -47,7 +47,7 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
         }
         else if (_state == AgentState.MoveWithBearing)
         {
-            // MoveWithBearing();
+            MoveWithBearing();
         }
         else if (_state == AgentState.MoveTowardsGoal)
         {
@@ -118,8 +118,7 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
     }
 
     /// <summary>
-    ///     Moves the agent towards a random nearby cell via a calculated bearing.
-    ///     // TODO: This does not work yet. How to consider non-routable grid cells during .MoveTowards() call?
+    ///     Moves the agent towards a random routable adjacent cell via a calculated bearing.
     /// </summary>
     private void MoveWithBearing()
     {
@@ -142,7 +141,7 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
         if (!_tripInProgress)
         {
             // Explore nearby grid cells based on their values
-            _goal ??= FindRoutableGoal();
+            _goal = FindRoutableGoal(MaxTripDistance);
             _path = _layer.FindPath(Position, _goal).GetEnumerator();
             _tripInProgress = true;
         }
@@ -162,10 +161,11 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
     /// <summary>
     ///     Finds a routable grid cell that serves as a goal for subsequent pathfinding.
     /// </summary>
+    /// <param name="maxDistanceToGoal">The maximum distance in grid cells between the agent's position and its goal</param>
     /// <returns>The found grid cell</returns>
-    private Position FindRoutableGoal()
+    private Position FindRoutableGoal(double maxDistanceToGoal = 1.0)
     {
-        var nearbyRoutableCells = _layer.Explore(Position, radius: MaxTripDistance, predicate: cellValue => cellValue == 0.0).ToList();
+        var nearbyRoutableCells = _layer.Explore(Position, radius: maxDistanceToGoal, predicate: cellValue => cellValue == 0.0).ToList();
         var goal = nearbyRoutableCells[_random.Next(nearbyRoutableCells.Count)].Node.NodePosition;
         
         while (Position.Equals(goal))
