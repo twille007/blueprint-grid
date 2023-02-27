@@ -167,10 +167,15 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
     {
         var nearbyRoutableCells = _layer.Explore(Position, radius: maxDistanceToGoal, predicate: cellValue => cellValue == 0.0).ToList();
         var goal = nearbyRoutableCells[_random.Next(nearbyRoutableCells.Count)].Node.NodePosition;
-        
-        while (Position.Equals(goal))
+
+        // in case only one cell is routable, use directly no need to random!
+        // other vise, try to find a cell we are not coming from
+        if (nearbyRoutableCells.Count > 1)
         {
-            goal = nearbyRoutableCells[_random.Next(nearbyRoutableCells.Count)].Node.NodePosition;
+            while (Position.Equals(goal))
+            {
+                goal = nearbyRoutableCells[_random.Next(nearbyRoutableCells.Count)].Node.NodePosition;
+            }
         }
         
         Console.WriteLine($"New goal: {goal}");
