@@ -19,7 +19,7 @@ public class SimpleAgent : IAgent<GridLayer>, IPositionable
     public void Init(GridLayer layer)
     {
         _layer = layer;
-        Position = new Position(X, Y);
+        Position = new Position(StartX, StartY);
         _directions = CreateMovementDirectionsList();
         _layer.SimpleAgentEnvironment.Insert(this);
     }
@@ -123,11 +123,11 @@ public class SimpleAgent : IAgent<GridLayer>, IPositionable
     
     public Position Position { get; set; }
     
-    [PropertyDescription(Name = "X")]
-    public int X { get; set; }
+    [PropertyDescription(Name = "StartX")]
+    public int StartX { get; set; }
     
-    [PropertyDescription(Name = "Y")]
-    public int Y { get; set; }
+    [PropertyDescription(Name = "StartY")]
+    public int StartY { get; set; }
 
     public int MeetingCounter { get; private set; }
 
