@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using log4net.Appender;
 using Mars.Common;
 using Mars.Interfaces.Agents;
 using Mars.Interfaces.Annotations;
@@ -24,9 +25,9 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
         _layer = layer;
         Position = new Position(StartX, StartY);
         _state = AgentState.MoveTowardsGoal;  // Initial state of the agent. Is overwritten eventually in Tick()
-        _state = AgentState.MoveWithBearing;  // Initial state of the agent. Is overwritten eventually in Tick()
         _directions = CreateMovementDirectionsList();
         _layer.ComplexAgentEnvironment.Insert(this);
+        _goal = new Position(150, 50);
     }
 
     #endregion
@@ -124,7 +125,7 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
     /// </summary>
     private void MoveWithBearing()
     {
-        var goal = FindRoutableGoal(10.0);
+        var goal = FindRoutableGoal();
         var bearing = PositionHelper.CalculateBearingCartesian(Position.X, Position.Y, goal.X, goal.Y);
         var curPos = Position;
         var newPos = _layer.ComplexAgentEnvironment.MoveTowards(this, bearing, 1);
@@ -143,7 +144,7 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
         if (!_tripInProgress)
         {
             // Explore nearby grid cells based on their values
-            _goal = FindRoutableGoal(MaxTripDistance);
+            //_goal = FindRoutableGoal(MaxTripDistance);
             _path = _layer.FindPath(Position, _goal).GetEnumerator();
             _tripInProgress = true;
         }
@@ -166,7 +167,7 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
     /// <returns>The found grid cell</returns>
     private Position FindRoutableGoal(double maxDistanceToGoal = 1.0)
     {
-        var nearbyRoutableCells = _layer.Explore(Position, radius: maxDistanceToGoal, predicate: cellValue => cellValue == 2.0).ToList();
+        var nearbyRoutableCells = _layer.Explore(Position, radius: maxDistanceToGoal, predicate: cellValue => cellValue == 0.0).ToList();
         var goal = nearbyRoutableCells[_random.Next(nearbyRoutableCells.Count)].Node.NodePosition;
 
         // in case only one cell is routable, use directly no need to random!
