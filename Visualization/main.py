@@ -47,7 +47,7 @@ class Visualization:
 
         self.clock = pygame.time.Clock()
         self.WINDOW_SIZE = [900, 920]
-        self.WORLD_SIZE = 0, 0, 100, 100  # used for scaling
+        self.WORLD_SIZE = 0, 0, 130, 130  # used for scaling
         self.BORDER_WIDTH_PIXEL = -20
         self.font = pygame.font.Font('freesansbold.ttf', 12)
         self.text = self.font.render('Tick: 0', True, YELLOW)
