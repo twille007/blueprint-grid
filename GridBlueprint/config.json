@@ -10,19 +10,19 @@
   "layers": [
     {
       "name": "GridLayer",
-      "file": "Resources/grid_closed.csv",
+      "file": "Resources/room.csv",
       "pythonVisualization": true
     }
   ],
   "agents": [
     {
       "name": "SimpleAgent",
-      "count": 1,
+      "count": 0,
       "file": "Resources/simple_agent.csv"
     },
     {
       "name": "ComplexAgent",
-      "count": 1,
+      "count": 50,
       "file": "Resources/complex_agent.csv"
     },
     {

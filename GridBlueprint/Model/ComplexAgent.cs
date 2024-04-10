@@ -24,6 +24,7 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
         _layer = layer;
         Position = new Position(StartX, StartY);
         _state = AgentState.MoveTowardsGoal;  // Initial state of the agent. Is overwritten eventually in Tick()
+        _state = AgentState.MoveWithBearing;  // Initial state of the agent. Is overwritten eventually in Tick()
         _directions = CreateMovementDirectionsList();
         _layer.ComplexAgentEnvironment.Insert(this);
     }
@@ -40,7 +41,7 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
     public void Tick()
     {
         // Chooses random state if trip is no longer in progress. Comment this out if the agent should keep its initial state.
-        _state = RandomlySelectNewState();
+        //state = RandomlySelectNewState();
         
         if (_state == AgentState.MoveRandomly)
         {
@@ -123,7 +124,7 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
     /// </summary>
     private void MoveWithBearing()
     {
-        var goal = FindRoutableGoal();
+        var goal = FindRoutableGoal(10.0);
         var bearing = PositionHelper.CalculateBearingCartesian(Position.X, Position.Y, goal.X, goal.Y);
         var curPos = Position;
         var newPos = _layer.ComplexAgentEnvironment.MoveTowards(this, bearing, 1);
@@ -165,7 +166,7 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
     /// <returns>The found grid cell</returns>
     private Position FindRoutableGoal(double maxDistanceToGoal = 1.0)
     {
-        var nearbyRoutableCells = _layer.Explore(Position, radius: maxDistanceToGoal, predicate: cellValue => cellValue == 0.0).ToList();
+        var nearbyRoutableCells = _layer.Explore(Position, radius: maxDistanceToGoal, predicate: cellValue => cellValue == 2.0).ToList();
         var goal = nearbyRoutableCells[_random.Next(nearbyRoutableCells.Count)].Node.NodePosition;
 
         // in case only one cell is routable, use directly no need to random!
