@@ -27,7 +27,8 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
         _state = AgentState.MoveTowardsGoal;  // Initial state of the agent. Is overwritten eventually in Tick()
         _directions = CreateMovementDirectionsList();
         _layer.ComplexAgentEnvironment.Insert(this);
-        _goal = new Position(150, 50);
+        _goal = _random.Next(2) == 1 ? new Position(59, 1) : new Position(59, 49);
+        _goal = new Position(59, 1);
     }
 
     #endregion
@@ -58,13 +59,13 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
         }
         else if (_state == AgentState.ExploreAgents)
         {
-            ExploreAgents();
+            CheckClearPath();
         }
-        
+        /*
         if (_layer.GetCurrentTick() == 595)
         {
             RemoveFromSimulation();
-        }
+        }*/
     }
 
     #endregion
@@ -141,21 +142,28 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
     /// </summary>
     private void MoveTowardsGoal()
     {
-        if (!_tripInProgress)
+        if (!_tripInProgress && !Position.Equals(_goal))
         {
             // Explore nearby grid cells based on their values
-            //_goal = FindRoutableGoal(MaxTripDistance);
             _path = _layer.FindPath(Position, _goal).GetEnumerator();
+            // move enumerator to actual next cell in path
+            _path.MoveNext();   // first cell (current position)
+            _path.MoveNext();   // next cell (desired)
             _tripInProgress = true;
         }
         
-        if (_path.MoveNext())
+        // Has path and no Agents on desired cell
+        if (CheckClearPath())
         {
             _layer.ComplexAgentEnvironment.MoveTo(this, _path.Current, 1);
             if (Position.Equals(_goal))
             {
                 Console.WriteLine($"ComplexAgent {ID} reached goal {_goal}");
                 _tripInProgress = false;
+            }
+            else
+            {
+                _path.MoveNext();
             }
         }
     }
@@ -185,20 +193,23 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
     }
 
     /// <summary>
-    ///     Explores the environment for agents of another type and increments their counter if they are nearby.
+    ///     Explores the environment for other agents and checks if path is blocked
     /// </summary>
-    private void ExploreAgents()
+    private bool CheckClearPath()
     {
-        // Explore nearby other SimpleAgent instances
-        var agents = _layer.SimpleAgentEnvironment.Explore(Position, radius: AgentExploreRadius);
+        // Explore nearby other ComplexAgent instances
+        var agents = _layer.ComplexAgentEnvironment.Explore(Position, radius: AgentExploreRadius);
 
         foreach (var agent in agents)
         {
-            if (Distance.Chebyshev(new []{Position.X, Position.Y}, new []{agent.Position.X, agent.Position.Y}) <= 1.0)
+            // checks if next cell (_path.Current) is a current position of another agent
+            if (_path.Current.Equals(agent.Position))
             {
-                agent.IncrementCounter();
+                return false;
             }
         }
+        //Console.WriteLine("Clear");
+        return true;
     }
 
     /// <summary>
