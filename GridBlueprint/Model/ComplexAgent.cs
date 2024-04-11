@@ -28,7 +28,7 @@ public class ComplexAgent : IAgent<GridLayer>, IPositionable
         _directions = CreateMovementDirectionsList();
         _layer.ComplexAgentEnvironment.Insert(this);
         _goal = _random.Next(2) == 1 ? new Position(59, 1) : new Position(59, 49);
-        _goal = new Position(59, 1);
+        //_goal = new Position(59, 1);
     }
 
     #endregion
