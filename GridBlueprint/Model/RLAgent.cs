@@ -24,6 +24,7 @@ namespace GridBlueprint.Model
             Position = new Position(StartX, StartY);
             _directions = CreateMovementDirectionsList();
             _layer.ComplexAgentEnvironment.Insert(this);
+            _goal = _random.Next(2) == 1 ? new Position(59, 1) : new Position(59, 49);
             //_episode = episode; //must be given by Train loop to decay epsilon
             InitQTable();
         }
@@ -32,22 +33,23 @@ namespace GridBlueprint.Model
         {
             int action;
             double reward;
+            //epsilon-greedy
             if (_random.Next(1) > _epsilon)
             {
                 action = _random.Next(9);
             }
             else
             {
-                // TODO: welches a hat max Q value bei Position 
-                //action = _Q[(Position, 0)]
-                action = 1;
+                //which a has max Q value in state (Position, ) 
+                action = _Q.Where(entry => entry.Key.state.Equals(Position)).OrderByDescending(entry => entry.Value)
+                    .FirstOrDefault().Key.action;
             }
 
             reward = TakeAction(action);
             UpdateQTable(action, reward);
             DecayEpsilon();
         }
-        
+
         #region Methods
 
         /// <summary>
@@ -85,12 +87,11 @@ namespace GridBlueprint.Model
         }
 
         // linear epsilon decay
-        // TODO: smoother exponential
         private void DecayEpsilon()
         {
-            _epsilon = Math.Max(_epsilon - _decay, _epsilon_min);
+            _epsilon = Math.Max(_epsilon * (1 - _decay), _epsilon_min);
         }
-        
+
         // Take choosen action and get reward
         private double TakeAction(int action)
         {
@@ -98,10 +99,11 @@ namespace GridBlueprint.Model
             {
                 return -1;
             }
+
             var nextDirection = _directions[action - 1];
             var newX = Position.X + nextDirection.X;
             var newY = Position.Y + nextDirection.Y;
-        
+
             // Check if chosen move is within the bounds of the grid
             if (0 <= newX && newX < _layer.Width && 0 <= newY && newY < _layer.Height)
             {
@@ -110,7 +112,12 @@ namespace GridBlueprint.Model
                 {
                     Position = new Position(newX, newY);
                     _layer.ComplexAgentEnvironment.MoveTo(this, new Position(newX, newY));
-                    // TODO: check for goal and give reward 100
+                    //check for goal and give reward 100
+                    if (Position.Equals(_goal))
+                    {
+                        return 100;
+                    }
+                    //else reward is -0.1
                     Console.WriteLine($"{GetType().Name} moved to a new cell: {Position}");
                     return -0.1;
                 }
@@ -126,35 +133,78 @@ namespace GridBlueprint.Model
         // Bellman Update for QTable at current Position + action and received reward
         private void UpdateQTable(int action, double reward)
         {
-            //TODO: Bellman update
+            double currentValue = _Q.TryGetValue((Position, action), out double val) ? val : 0.0f;
+
+            // Calculate the new Q-value using the Bellman equation
+            double newQValue = currentValue + reward + _gamma * GetMaxQValueForState(Position);
+
+            // Update the Q-value in the dictionary
+            _Q[(Position, action)] = newQValue;
         }
-        
+
+        private double GetMaxQValueForState(Position state)
+        {
+            double maxQValue = double.MinValue;
+
+            // Loop through all actions for the given state and find the maximum Q-value
+            foreach (int action in GetAllActionsForState(state))
+            {
+                if (_Q.TryGetValue((state, action), out double qValue))
+                {
+                    if (qValue > maxQValue)
+                    {
+                        maxQValue = qValue;
+                    }
+                }
+            }
+
+            return maxQValue;
+        }
+
+        private IEnumerable<int> GetAllActionsForState(Position state)
+        {
+            // Get all actions for the given state from the dictionary
+            var actions = new HashSet<int>();
+
+            foreach (var key in _Q.Keys)
+            {
+                if (key.state.Equals(state))
+                {
+                    actions.Add(key.action);
+                }
+            }
+
+            return actions;
+        }
+
         #endregion
-        
+
         #region Fields and Properties
 
         public Guid ID { get; set; }
-    
+
         public Position Position { get; set; }
 
-        [PropertyDescription(Name = "StartX")]
-        public int StartX { get; set; }
-    
-        [PropertyDescription(Name = "StartY")]
-        public int StartY { get; set; }
-    
+        [PropertyDescription(Name = "StartX")] public int StartX { get; set; }
+
+        [PropertyDescription(Name = "StartY")] public int StartY { get; set; }
+
         [PropertyDescription(Name = "MaxTripDistance")]
         public double MaxTripDistance { get; set; }
-    
+
         [PropertyDescription(Name = "AgentExploreRadius")]
         public double AgentExploreRadius { get; set; }
-        
+
         private GridLayer _layer;
         private List<Position> _directions;
         private readonly Random _random = new();
         private AgentState _state;
         private List<Position>.Enumerator _path;
-        private Dictionary<(Position state, int action), float> _Q = new Dictionary<(Position state, int action), float>();
+        private Position _goal;
+
+        private Dictionary<(Position state, int action), double> _Q =
+            new Dictionary<(Position state, int action), double>();
+
         private double _epsilon = 1.0;
         private double _epsilon_min = 0.1;
         private double _decay = 0.01;
@@ -163,5 +213,4 @@ namespace GridBlueprint.Model
 
         #endregion
     }
-    
 }
