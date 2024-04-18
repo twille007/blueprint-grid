@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using log4net.Appender;
-using Mars.Common;
 using Mars.Interfaces.Agents;
 using Mars.Interfaces.Annotations;
 using Mars.Interfaces.Environments;
-using Mars.Interfaces.Layers;
-using Mars.Numerics;
 
 namespace GridBlueprint.Model
 {
@@ -23,7 +19,7 @@ namespace GridBlueprint.Model
             _layer = layer;
             Position = new Position(StartX, StartY);
             _directions = CreateMovementDirectionsList();
-            _layer.ComplexAgentEnvironment.Insert(this);
+            _layer.RLAgentEnvironment.Insert(this);
             _goal = _random.Next(2) == 1 ? new Position(59, 1) : new Position(59, 49);
             //_episode = episode; //must be given by Train loop to decay epsilon
             InitQTable();
@@ -34,20 +30,25 @@ namespace GridBlueprint.Model
             int action;
             double reward;
             //epsilon-greedy
-            if (_random.Next(1) > _epsilon)
+            if (_random.NextDouble() < _epsilon)
             {
                 action = _random.Next(9);
             }
             else
             {
                 //which a has max Q value in state (Position, ) 
-                action = _Q.Where(entry => entry.Key.state.Equals(Position)).OrderByDescending(entry => entry.Value)
-                    .FirstOrDefault().Key.action;
+                action = GetBestActionForState();
             }
 
             reward = TakeAction(action);
+            Console.WriteLine($"{Position};{action};{reward}");
             UpdateQTable(action, reward);
-            DecayEpsilon();
+            //DecayEpsilon();   //TODO decay each episode, so maybe in saved qtable file?
+            
+            if (_layer.GetCurrentTick() == 595)
+            {
+                RemoveFromSimulation();
+            }
         }
 
         #region Methods
@@ -111,7 +112,8 @@ namespace GridBlueprint.Model
                 if (_layer.IsRoutable(newX, newY))
                 {
                     Position = new Position(newX, newY);
-                    _layer.ComplexAgentEnvironment.MoveTo(this, new Position(newX, newY));
+                    _layer.RLAgentEnvironment.MoveTo(this, new Position(newX, newY));
+                    //TODO maybe positive reward for crossing x=50?
                     //check for goal and give reward 100
                     if (Position.Equals(_goal))
                     {
@@ -136,47 +138,30 @@ namespace GridBlueprint.Model
             double currentValue = _Q.TryGetValue((Position, action), out double val) ? val : 0.0f;
 
             // Calculate the new Q-value using the Bellman equation
-            double newQValue = currentValue + reward + _gamma * GetMaxQValueForState(Position);
-
+            double newQValue = currentValue +
+                            _alpha * (reward + _gamma * _Q[(Position, GetBestActionForState())] - currentValue);
+            
+            Console.WriteLine($"Before: {currentValue}, After: {newQValue}");
             // Update the Q-value in the dictionary
             _Q[(Position, action)] = newQValue;
         }
 
-        private double GetMaxQValueForState(Position state)
+        private int GetBestActionForState()
         {
-            double maxQValue = double.MinValue;
-
-            // Loop through all actions for the given state and find the maximum Q-value
-            foreach (int action in GetAllActionsForState(state))
-            {
-                if (_Q.TryGetValue((state, action), out double qValue))
-                {
-                    if (qValue > maxQValue)
-                    {
-                        maxQValue = qValue;
-                    }
-                }
-            }
-
-            return maxQValue;
+            return _Q.Where(entry => entry.Key.state.Equals(Position)).OrderByDescending(entry => entry.Value)
+                .FirstOrDefault().Key.action;
         }
-
-        private IEnumerable<int> GetAllActionsForState(Position state)
+        
+        /// <summary>
+        ///     Removes this agent from the simulation and, by extension, from the visualization.
+        /// </summary>
+        private void RemoveFromSimulation()
         {
-            // Get all actions for the given state from the dictionary
-            var actions = new HashSet<int>();
-
-            foreach (var key in _Q.Keys)
-            {
-                if (key.state.Equals(state))
-                {
-                    actions.Add(key.action);
-                }
-            }
-
-            return actions;
+            Console.WriteLine($"ComplexAgent {ID} is removing itself from the simulation.");
+            _layer.ComplexAgentEnvironment.Remove(this);
+            UnregisterAgentHandle.Invoke(_layer, this);
         }
-
+        
         #endregion
 
         #region Fields and Properties
@@ -202,13 +187,13 @@ namespace GridBlueprint.Model
         private List<Position>.Enumerator _path;
         private Position _goal;
 
-        private Dictionary<(Position state, int action), double> _Q =
-            new Dictionary<(Position state, int action), double>();
+        private Dictionary<(Position state, int action), double> _Q = new();
 
         private double _epsilon = 1.0;
         private double _epsilon_min = 0.1;
         private double _decay = 0.01;
         private double _gamma = 0.99;
+        private double _alpha = 0.01;
         private int _episode;
 
         #endregion
