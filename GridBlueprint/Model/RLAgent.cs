@@ -49,7 +49,7 @@ namespace GridBlueprint.Model
             }
 
             reward = TakeAction(action);
-            Console.WriteLine($"{Position};{action};{reward}");
+            //Console.WriteLine($"{Position};{action};{reward}");
             UpdateQTable(action, reward);
             
             if (_layer.GetCurrentTick() == 595)
@@ -197,7 +197,7 @@ namespace GridBlueprint.Model
             double newQValue = currentValue +
                             _alpha * (reward + _gamma * _Q[(Position, GetBestActionForState())] - currentValue);
             
-            Console.WriteLine($"Before: {currentValue}, After: {newQValue}");
+            //Console.WriteLine($"Before: {currentValue}, After: {newQValue}");
             // Update the Q-value in the dictionary
             _Q[(Position, action)] = newQValue;
         }

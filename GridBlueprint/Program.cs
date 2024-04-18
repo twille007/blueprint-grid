@@ -10,26 +10,33 @@ internal static class Program
 {
     private static void Main()
     {
-        // Create a new model description and add model components to it
-        var description = new ModelDescription();
-        description.AddLayer<GridLayer>();
-        description.AddAgent<SimpleAgent, GridLayer>();
-        description.AddAgent<ComplexAgent, GridLayer>();
-        description.AddAgent<RLAgent, GridLayer>();
-        description.AddAgent<HelperAgent, GridLayer>();
+        var iterations = 50;
 
-        // Load the simulation configuration from a JSON configuration file
-        var file = File.ReadAllText("config.json");
-        var config = SimulationConfig.Deserialize(file);
+        for (int i = 1; i <= iterations; i++)
+        {
+            Console.WriteLine("Start iteration " + i + "...");
 
-        // Couple model description and simulation configuration
-        var starter = SimulationStarter.Start(description, config);
+            // Create a new model description and add model components to it
+            var description = new ModelDescription();
+            description.AddLayer<GridLayer>();
+            description.AddAgent<SimpleAgent, GridLayer>();
+            description.AddAgent<ComplexAgent, GridLayer>();
+            description.AddAgent<RLAgent, GridLayer>();
+            description.AddAgent<HelperAgent, GridLayer>();
 
-        // Run the simulation
-        var handle = starter.Run();
-        
-        // Close the program
-        Console.WriteLine("Successfully executed iterations: " + handle.Iterations);
-        starter.Dispose();
+            // Load the simulation configuration from a JSON configuration file
+            var file = File.ReadAllText("config.json");
+            var config = SimulationConfig.Deserialize(file);
+
+            // Couple model description and simulation configuration
+            var starter = SimulationStarter.Start(description, config);
+
+            // Run the simulation
+            var handle = starter.Run();
+
+            // Close the program
+            Console.WriteLine("Successfully executed iterations: " + handle.Iterations);
+            starter.Dispose();
+        }
     }
 }
