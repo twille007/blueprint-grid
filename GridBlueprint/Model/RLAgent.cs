@@ -51,7 +51,6 @@ namespace GridBlueprint.Model
             reward = TakeAction(action);
             Console.WriteLine($"{Position};{action};{reward}");
             UpdateQTable(action, reward);
-            //DecayEpsilon();   //TODO decay each episode, so maybe in saved qtable file?
             
             if (_layer.GetCurrentTick() == 595)
             {
@@ -176,7 +175,7 @@ namespace GridBlueprint.Model
                         return 100;
                     }
                     //else reward is -0.1
-                    Console.WriteLine($"{GetType().Name} moved to a new cell: {Position}");
+                    //Console.WriteLine($"{GetType().Name} moved to a new cell: {Position}");
                     return -0.1;
                 }
 
@@ -229,18 +228,11 @@ namespace GridBlueprint.Model
         [PropertyDescription(Name = "StartX")] public int StartX { get; set; }
 
         [PropertyDescription(Name = "StartY")] public int StartY { get; set; }
-
-        [PropertyDescription(Name = "MaxTripDistance")]
-        public double MaxTripDistance { get; set; }
-
-        [PropertyDescription(Name = "AgentExploreRadius")]
-        public double AgentExploreRadius { get; set; }
-
+        
         private GridLayer _layer;
         private List<Position> _directions;
         private readonly Random _random = new();
         private AgentState _state;
-        private List<Position>.Enumerator _path;
         private Position _goal;
 
         private Dictionary<(Position state, int action), double> _Q = new();
@@ -252,7 +244,6 @@ namespace GridBlueprint.Model
         private double _decay = 0.01;
         private double _gamma = 0.99;
         private double _alpha = 0.01;
-        private int _episode;
 
         #endregion
     }
