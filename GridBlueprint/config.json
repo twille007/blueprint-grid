@@ -22,7 +22,12 @@
     },
     {
       "name": "ComplexAgent",
-      "count": 50,
+      "count": 0,
+      "file": "Resources/complex_agent.csv"
+    },
+    {
+      "name": "RLAgent",
+      "count": 1,
       "file": "Resources/complex_agent.csv"
     },
     {

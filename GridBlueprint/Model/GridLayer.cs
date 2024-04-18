@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using GridBlueprint.Model;
 using Mars.Components.Environments;
 using Mars.Components.Layers;
 using Mars.Core.Data;
@@ -27,11 +28,13 @@ public class GridLayer : RasterLayer
 
         SimpleAgentEnvironment = new SpatialHashEnvironment<SimpleAgent>(Width, Height);
         ComplexAgentEnvironment = new SpatialHashEnvironment<ComplexAgent>(Width, Height);
+        RLAgentEnvironment = new SpatialHashEnvironment<RLAgent>(Width, Height);
 
         var agentManager = layerInitData.Container.Resolve<IAgentManager>();
 
         SimpleAgents = agentManager.Spawn<SimpleAgent, GridLayer>().ToList();
         ComplexAgents = agentManager.Spawn<ComplexAgent, GridLayer>().ToList();
+        RLAgents = agentManager.Spawn<RLAgent, GridLayer>().ToList();
         HelperAgents = agentManager.Spawn<HelperAgent, GridLayer>().ToList();
 
         return initLayer;
@@ -64,6 +67,11 @@ public class GridLayer : RasterLayer
     public SpatialHashEnvironment<ComplexAgent> ComplexAgentEnvironment { get; set; }
 
     /// <summary>
+    ///     The environment of the ComplexAgent agents
+    /// </summary>
+    public SpatialHashEnvironment<RLAgent> RLAgentEnvironment { get; set; }
+    
+    /// <summary>
     ///     A collection that holds the SimpleAgent instances
     /// </summary>
     public List<SimpleAgent> SimpleAgents { get; private set; }
@@ -72,6 +80,11 @@ public class GridLayer : RasterLayer
     ///     A collection that holds the ComplexAgent instances
     /// </summary>
     public List<ComplexAgent> ComplexAgents { get; private set; }
+    
+    /// <summary>
+    ///     A collection that holds the RLAgent instances
+    /// </summary>
+    public List<RLAgent> RLAgents { get; private set; }
 
     /// <summary>
     ///     A collection that holds the HelperAgent instance
