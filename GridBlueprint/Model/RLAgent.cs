@@ -25,7 +25,7 @@ namespace GridBlueprint.Model
             //_episode = episode; //must be given by Train loop to decay epsilon
             if (File.Exists(_saveFile))
             {
-                LoadQTable();
+                LoadQTable(_saveFile);
             }
             else
             {
@@ -55,7 +55,7 @@ namespace GridBlueprint.Model
             if (_layer.GetCurrentTick() == 595)
             {
                 DecayEpsilon();
-                ExportQTable();
+                ExportQTable(_saveFile);
                 RemoveFromSimulation();
             }
         }
@@ -96,50 +96,51 @@ namespace GridBlueprint.Model
             }
         }
 
-        private void LoadQTable()
+        public void LoadQTable(string file)
         {
-            using (StreamReader reader = new StreamReader(_saveFile))
+            using StreamReader reader = new StreamReader(file);
+            // Skip header
+            reader.ReadLine();
+
+            string line;
+            while ((line = reader.ReadLine()) != null)
             {
-                // Skip header
-                reader.ReadLine();
+                string[] parts = line.Split(';');
 
-                string line;
-                while ((line = reader.ReadLine()) != null)
-                {
-                    string[] parts = line.Split(';');
+                // Parse state coordinates, action, Q-value, and epsilon
+                int x = int.Parse(parts[0]);
+                int y = int.Parse(parts[1]);
+                int action = int.Parse(parts[2]);
+                double qValue = double.Parse(parts[3]);
+                _epsilon = double.Parse(parts[4]);
 
-                    // Parse state coordinates, action, Q-value, and epsilon
-                    int X = int.Parse(parts[0]);
-                    int Y = int.Parse(parts[1]);
-                    int action = int.Parse(parts[2]);
-                    double qValue = double.Parse(parts[3]);
-                    _epsilon = double.Parse(parts[4]);
+                Position state = new Position(x, y);
 
-                    Position state = new Position(X, Y);
-
-                    _Q.Add((state, action), qValue);
-                }
+                _Q.Add((state, action), qValue);
             }
         }
 
-        private void ExportQTable()
+        public void ExportQTable(string file)
         {
-            using (StreamWriter writer = new StreamWriter(_saveFile))
+            using StreamWriter writer = new StreamWriter(file);
+            Console.WriteLine($"Exporting Q Table to file {file}");
+            // header
+            writer.WriteLine("X;Y;Action;QValue;Epsilon");
+
+            foreach (var entry in _Q)
             {
-                Console.WriteLine($"Exporting Q Table to file {_saveFile}");
-                // header
-                writer.WriteLine("X;Y;Action;QValue;Epsilon");
+                Position state = entry.Key.state;
+                int action = entry.Key.action;
+                double qValue = entry.Value;
 
-                foreach (var entry in _Q)
-                {
-                    Position state = entry.Key.state;
-                    int action = entry.Key.action;
-                    double qValue = entry.Value;
-
-                    // Write state coordinates, action, Q-value, and epsilon to CSV
-                    writer.WriteLine($"{state.X};{state.Y};{action};{qValue};{_epsilon}");
-                }
+                // Write state coordinates, action, Q-value, and epsilon to CSV
+                writer.WriteLine($"{state.X};{state.Y};{action};{qValue};{_epsilon}");
             }
+        }
+
+        public Dictionary<(Position state, int action), double> GetQ()
+        {
+            return _Q;
         }
 
         // linear epsilon decay

@@ -1,11 +1,7 @@
 {
   "globals": {
-    "startTime": "2022-03-01T05:00",
-    "endTime": "2022-03-01T05:10",
-    "deltaTUnit": "seconds",
     "deltaT": 1,
-    "output": "csv",
-    "pythonVisualization": true
+    "steps": 600
   },
   "layers": [
     {
