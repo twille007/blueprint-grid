@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Mars.Interfaces.Agents;
 using Mars.Interfaces.Annotations;
@@ -20,9 +21,16 @@ namespace GridBlueprint.Model
             Position = new Position(StartX, StartY);
             _directions = CreateMovementDirectionsList();
             _layer.RLAgentEnvironment.Insert(this);
-            _goal = _random.Next(2) == 1 ? new Position(59, 1) : new Position(59, 49);
+            _goal = new Position(59, 1);//_random.Next(2) == 1 ? new Position(59, 1) : new Position(59, 49);
             //_episode = episode; //must be given by Train loop to decay epsilon
-            InitQTable();
+            if (File.Exists(_saveFile))
+            {
+                LoadQTable();
+            }
+            else
+            {
+                InitQTable();
+            }
         }
 
         public new void Tick()
@@ -36,7 +44,7 @@ namespace GridBlueprint.Model
             }
             else
             {
-                //which a has max Q value in state (Position, ) 
+                //which action has max Q value in state (Position, a) 
                 action = GetBestActionForState();
             }
 
@@ -47,6 +55,8 @@ namespace GridBlueprint.Model
             
             if (_layer.GetCurrentTick() == 595)
             {
+                DecayEpsilon();
+                ExportQTable();
                 RemoveFromSimulation();
             }
         }
@@ -87,13 +97,59 @@ namespace GridBlueprint.Model
             }
         }
 
+        private void LoadQTable()
+        {
+            using (StreamReader reader = new StreamReader(_saveFile))
+            {
+                // Skip header
+                reader.ReadLine();
+
+                string line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    string[] parts = line.Split(';');
+
+                    // Parse state coordinates, action, Q-value, and epsilon
+                    int X = int.Parse(parts[0]);
+                    int Y = int.Parse(parts[1]);
+                    int action = int.Parse(parts[2]);
+                    double qValue = double.Parse(parts[3]);
+                    _epsilon = double.Parse(parts[4]);
+
+                    Position state = new Position(X, Y);
+
+                    _Q.Add((state, action), qValue);
+                }
+            }
+        }
+
+        private void ExportQTable()
+        {
+            using (StreamWriter writer = new StreamWriter(_saveFile))
+            {
+                Console.WriteLine($"Exporting Q Table to file {_saveFile}");
+                // header
+                writer.WriteLine("X;Y;Action;QValue;Epsilon");
+
+                foreach (var entry in _Q)
+                {
+                    Position state = entry.Key.state;
+                    int action = entry.Key.action;
+                    double qValue = entry.Value;
+
+                    // Write state coordinates, action, Q-value, and epsilon to CSV
+                    writer.WriteLine($"{state.X};{state.Y};{action};{qValue};{_epsilon}");
+                }
+            }
+        }
+
         // linear epsilon decay
         private void DecayEpsilon()
         {
             _epsilon = Math.Max(_epsilon * (1 - _decay), _epsilon_min);
         }
 
-        // Take choosen action and get reward
+        // Take chosen action and get reward
         private double TakeAction(int action)
         {
             if (action == 0)
@@ -188,6 +244,8 @@ namespace GridBlueprint.Model
         private Position _goal;
 
         private Dictionary<(Position state, int action), double> _Q = new();
+
+        private string _saveFile = @"../../../Resources/q.csv";
 
         private double _epsilon = 1.0;
         private double _epsilon_min = 0.1;
