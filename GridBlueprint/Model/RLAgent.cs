@@ -21,7 +21,7 @@ namespace GridBlueprint.Model
             Position = new Position(StartX, StartY);
             _directions = CreateMovementDirectionsList();
             _layer.RLAgentEnvironment.Insert(this);
-            _goal = new Position(59, 1);//_random.Next(2) == 1 ? new Position(59, 1) : new Position(59, 49);
+            _goal = new Position(59, 1); //_random.Next(2) == 1 ? new Position(59, 1) : new Position(59, 49);
             //_episode = episode; //must be given by Train loop to decay epsilon
             if (File.Exists(_saveFile))
             {
@@ -35,23 +35,11 @@ namespace GridBlueprint.Model
 
         public new void Tick()
         {
-            int action;
-            double reward;
-            //epsilon-greedy
-            if (_random.NextDouble() < _epsilon)
-            {
-                action = _random.Next(9);
-            }
-            else
-            {
-                //which action has max Q value in state (Position, a) 
-                action = GetBestActionForState();
-            }
-
-            reward = TakeAction(action);
-            //Console.WriteLine($"{Position};{action};{reward}");
-            UpdateQTable(action, reward);
-            
+            var action = _random.NextDouble() < _epsilon ? _random.Next(9) : GetBestAction(Position);
+            (var newPosition, double reward) = TakeAction(action);
+            // Console.WriteLine($"{Position};{action};{newPosition};{reward}");
+            UpdateQTable(action, newPosition, reward);
+            Position = newPosition;
             if (_layer.GetCurrentTick() == 595)
             {
                 DecayEpsilon();
@@ -150,11 +138,12 @@ namespace GridBlueprint.Model
         }
 
         // Take chosen action and get reward
-        private double TakeAction(int action)
+        private (Position, double) TakeAction(int action)
         {
             if (action == 0)
             {
-                return -1;
+                // stay at the current cell
+                return (Position, -1);
             }
 
             var nextDirection = _directions[action - 1];
@@ -167,47 +156,49 @@ namespace GridBlueprint.Model
                 // Check if chosen move goes to a cell that is routable
                 if (_layer.IsRoutable(newX, newY))
                 {
-                    Position = new Position(newX, newY);
+                    var newPosition = new Position(newX, newY);
                     _layer.RLAgentEnvironment.MoveTo(this, new Position(newX, newY));
                     //TODO maybe positive reward for crossing x=50?
                     //check for goal and give reward 100
-                    if (Position.Equals(_goal))
+                    if (newPosition.Equals(_goal))
                     {
-                        return 100;
+                        return (newPosition, 100);
                     }
+
                     //else reward is -0.1
                     //Console.WriteLine($"{GetType().Name} moved to a new cell: {Position}");
-                    return -0.1;
+                    return (newPosition, -0.1);
                 }
 
                 Console.WriteLine($"{GetType().Name} tried to move to a blocked cell: ({newX}, {newY})");
-                return -1;
+                return (Position, -1);
             }
 
             Console.WriteLine($"{GetType().Name} tried to leave the world: ({newX}, {newY})");
-            return -1;
+            return (Position, -1);
         }
 
         // Bellman Update for QTable at current Position + action and received reward
-        private void UpdateQTable(int action, double reward)
+        private void UpdateQTable(int action, Position newPosition, double reward)
         {
             double currentValue = _Q.TryGetValue((Position, action), out double val) ? val : 0.0f;
 
             // Calculate the new Q-value using the Bellman equation
             double newQValue = currentValue +
-                            _alpha * (reward + _gamma * _Q[(Position, GetBestActionForState())] - currentValue);
-            
+                               _alpha * (reward + _gamma * _Q[(newPosition, GetBestAction(newPosition))] -
+                                         currentValue);
+
             //Console.WriteLine($"Before: {currentValue}, After: {newQValue}");
             // Update the Q-value in the dictionary
             _Q[(Position, action)] = newQValue;
         }
 
-        private int GetBestActionForState()
+        private int GetBestAction(Position p)
         {
-            return _Q.Where(entry => entry.Key.state.Equals(Position)).OrderByDescending(entry => entry.Value)
+            return _Q.Where(entry => entry.Key.state.Equals(p)).OrderByDescending(entry => entry.Value)
                 .FirstOrDefault().Key.action;
         }
-        
+
         /// <summary>
         ///     Removes this agent from the simulation and, by extension, from the visualization.
         /// </summary>
@@ -217,7 +208,7 @@ namespace GridBlueprint.Model
             _layer.ComplexAgentEnvironment.Remove(this);
             UnregisterAgentHandle.Invoke(_layer, this);
         }
-        
+
         #endregion
 
         #region Fields and Properties
@@ -229,7 +220,7 @@ namespace GridBlueprint.Model
         [PropertyDescription(Name = "StartX")] public int StartX { get; set; }
 
         [PropertyDescription(Name = "StartY")] public int StartY { get; set; }
-        
+
         private GridLayer _layer;
         private List<Position> _directions;
         private readonly Random _random = new();
