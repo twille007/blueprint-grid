@@ -35,16 +35,26 @@ namespace GridBlueprint.Model
 
         public new void Tick()
         {
-            var action = _random.NextDouble() < _epsilon ? _random.Next(9) : GetBestAction(Position);
-            (var newPosition, double reward) = TakeAction(action);
-            // Console.WriteLine($"{Position};{action};{newPosition};{reward}");
-            UpdateQTable(action, newPosition, reward);
-            Position = newPosition;
-            if (_layer.GetCurrentTick() == 595)
+            if (Program.train_mode)
             {
-                DecayEpsilon();
-                ExportQTable(_saveFile);
-                RemoveFromSimulation();
+                var action = _random.NextDouble() < _epsilon ? _random.Next(9) : GetBestAction(Position);
+                (var newPosition, double reward) = TakeAction(action);
+                // Console.WriteLine($"{Position};{action};{newPosition};{reward}");
+                UpdateQTable(action, newPosition, reward);
+                Position = newPosition;
+                if (_layer.GetCurrentTick() == 595 || Position.Equals(_goal))
+                {
+                    //TODO: export cumulated/average rewards
+                    DecayEpsilon();
+                    ExportQTable(_saveFile);
+                    RemoveFromSimulation();
+                }
+            }
+            else
+            {
+                var action = GetBestAction(Position);
+                (var newPosition, double reward) = TakeAction(action);
+                Position = newPosition;
             }
         }
 
@@ -156,6 +166,11 @@ namespace GridBlueprint.Model
                 // Check if chosen move goes to a cell that is routable
                 if (_layer.IsRoutable(newX, newY))
                 {
+                    if (!CheckClearPath(new Position(newX, newY)))
+                    {
+                        return (Position, -0.5);
+                    }
+
                     var newPosition = new Position(newX, newY);
                     _layer.RLAgentEnvironment.MoveTo(this, new Position(newX, newY));
                     //TODO maybe positive reward for crossing x=50?
@@ -197,6 +212,23 @@ namespace GridBlueprint.Model
         {
             return _Q.Where(entry => entry.Key.state.Equals(p)).OrderByDescending(entry => entry.Value)
                 .FirstOrDefault().Key.action;
+        }
+        
+        private bool CheckClearPath(Position newPos)
+        {
+            // Explore nearby other ComplexAgent instances
+            var agents = _layer.RLAgentEnvironment.Explore(Position, radius: AgentExploreRadius);
+
+            foreach (var agent in agents)
+            {
+                // checks if next cell (_path.Current) is a current position of another agent
+                if (newPos.Equals(agent.Position))
+                {
+                    return false;
+                }
+            }
+            //Console.WriteLine("Clear");
+            return true;
         }
 
         /// <summary>

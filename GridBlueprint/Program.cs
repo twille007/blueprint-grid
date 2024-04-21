@@ -8,10 +8,11 @@ namespace GridBlueprint;
 
 internal static class Program
 {
+    public static bool train_mode = true;
     private static void Main()
-    {
-        var iterations = 50;
-
+    {   
+        var iterations = Program.train_mode ? 50 : 1;
+        var configFileName = Program.train_mode ? "train_config.json" : "viz_config.json";
         for (int i = 1; i <= iterations; i++)
         {
             Console.WriteLine("Start iteration " + i + "...");
@@ -25,9 +26,9 @@ internal static class Program
             description.AddAgent<HelperAgent, GridLayer>();
 
             // Load the simulation configuration from a JSON configuration file
-            var file = File.ReadAllText("config.json");
+            var file = File.ReadAllText(configFileName);
             var config = SimulationConfig.Deserialize(file);
-
+            
             // Couple model description and simulation configuration
             var starter = SimulationStarter.Start(description, config);
 
