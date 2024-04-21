@@ -11,8 +11,8 @@ internal static class Program
     public static bool train_mode = true;
     private static void Main()
     {   
-        var iterations = Program.train_mode ? 50 : 1;
-        var configFileName = Program.train_mode ? "train_config.json" : "viz_config.json";
+        var iterations = train_mode ? 500 : 1;
+        var configFileName = train_mode ? "train_config.json" : "viz_config.json";
         for (int i = 1; i <= iterations; i++)
         {
             Console.WriteLine("Start iteration " + i + "...");

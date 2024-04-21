@@ -23,7 +23,8 @@ namespace GridBlueprint.Model
             _layer.RLAgentEnvironment.Insert(this);
             _goal = new Position(59, 1); //_random.Next(2) == 1 ? new Position(59, 1) : new Position(59, 49);
             //_episode = episode; //must be given by Train loop to decay epsilon
-            if (File.Exists(_saveFile))
+            bool load = true;
+            if (load && File.Exists(_saveFile))
             {
                 LoadQTable(_saveFile);
             }
@@ -40,13 +41,15 @@ namespace GridBlueprint.Model
                 var action = _random.NextDouble() < _epsilon ? _random.Next(9) : GetBestAction(Position);
                 (var newPosition, double reward) = TakeAction(action);
                 // Console.WriteLine($"{Position};{action};{newPosition};{reward}");
+                _totalReward += reward;
                 UpdateQTable(action, newPosition, reward);
                 Position = newPosition;
-                if (_layer.GetCurrentTick() == 595 || Position.Equals(_goal))
+                if (_layer.GetCurrentTick() == 300 || Position.Equals(_goal))
                 {
-                    //TODO: export cumulated/average rewards
                     DecayEpsilon();
                     ExportQTable(_saveFile);
+                    ExportAvgReward(_rewardSaveFile, _totalReward / _layer.GetCurrentTick());
+                    ExportSteps(_stepsSaveFile, _layer.GetCurrentTick());
                     RemoveFromSimulation();
                 }
             }
@@ -94,7 +97,7 @@ namespace GridBlueprint.Model
             }
         }
 
-        public void LoadQTable(string file)
+        private void LoadQTable(string file)
         {
             using StreamReader reader = new StreamReader(file);
             // Skip header
@@ -118,7 +121,7 @@ namespace GridBlueprint.Model
             }
         }
 
-        public void ExportQTable(string file)
+        private void ExportQTable(string file)
         {
             using StreamWriter writer = new StreamWriter(file);
             Console.WriteLine($"Exporting Q Table to file {file}");
@@ -136,6 +139,20 @@ namespace GridBlueprint.Model
             }
         }
 
+        private void ExportAvgReward(string file, double averageRewards)
+        {
+            using StreamWriter writer = File.AppendText(file);
+            Console.WriteLine($"Exporting average rewards to file {file}");
+            writer.WriteLine(averageRewards);
+        }
+
+        private void ExportSteps(string file, long steps)
+        {
+            using StreamWriter writer = File.AppendText(file);
+            Console.WriteLine($"Exporting average rewards to file {file}");
+            writer.WriteLine(steps);
+        }
+        
         public Dictionary<(Position state, int action), double> GetQ()
         {
             return _Q;
@@ -260,8 +277,11 @@ namespace GridBlueprint.Model
         private Position _goal;
 
         private Dictionary<(Position state, int action), double> _Q = new();
+        private double _totalReward = 0;
 
         private string _saveFile = @"../../../Resources/q.csv";
+        private string _rewardSaveFile = @"../../../Resources/avg_rewards.txt";
+        private string _stepsSaveFile = @"../../../Resources/steps.txt";
 
         private double _epsilon = 1.0;
         private double _epsilon_min = 0.1;
