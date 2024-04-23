@@ -190,11 +190,15 @@ namespace GridBlueprint.Model
 
                     var newPosition = new Position(newX, newY);
                     _layer.RLAgentEnvironment.MoveTo(this, new Position(newX, newY));
-                    //TODO maybe positive reward for crossing x=50?
                     //check for goal and give reward 100
                     if (newPosition.Equals(_goal))
                     {
                         return (newPosition, 100);
+                    }
+                    // left room
+                    if (newPosition.X >= 50)
+                    {
+                        return (newPosition, 1);
                     }
 
                     //else reward is -0.1
@@ -285,7 +289,7 @@ namespace GridBlueprint.Model
 
         private double _epsilon = 1.0;
         private double _epsilon_min = 0.1;
-        private double _decay = 0.01;
+        private double _decay = 0.005;
         private double _gamma = 0.99;
         private double _alpha = 0.01;
 
